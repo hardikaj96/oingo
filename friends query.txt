@@ -1,0 +1,47 @@
+select id from users where id in ( select f.uid1 from friend f where f.uid2 = 2 
+AND f.uid1 NOT IN( select f1.uid2 from friend f1 inner join friend f2 on f1.uid1 = f2.uid2 and f1.uid2 = f2.uid1 AND f1.uid1=2))
+
+
+SELECT uid from users where uid in (select f1.uid2 from friend f1 inner join friend f2 on f1.uid1 = f2.uid2 and f1.uid2 = f2.uid1 and f1.uid1 = 2)
+
+select id from users where id in ( select f.uid2 from friend f where f.uid1 = 2 AND f.uid2 NOT IN( select f1.uid2 from friend f1 inner join friend f2 on f1.uid1 = f2.uid2 and f1.uid2 = f2.uid1 AND f1.uid1=2))
+
+select id from users where id in ( select f.uid1 from friend f where f.uid2 = 2 
+AND f.uid1 NOT IN( select f1.uid2 from friend f1 inner join friend f2 on f1.uid1 = f2.uid2 and f1.uid2 = f2.uid1 AND f1.uid1=2))
+
+SELECT id, name from users where id not in (SELECT uid from users where uid in (select f1.uid2 from friend f1 inner join friend f2 on f1.uid1 = f2.uid2 and f1.uid2 = f2.uid1 and f1.uid1 = 2)) and id not in (select id from users where id in ( select f.uid2 from friend f where f.uid1 = 2 AND f.uid2 NOT IN( select f1.uid2 from friend f1 inner join friend f2 on f1.uid1 = f2.uid2 and f1.uid2 = f2.uid1 AND f1.uid1=2))) and id not in (select id from users where id in ( select f.uid1 from friend f where f.uid2 = 2 
+AND f.uid1 NOT IN( select f1.uid2 from friend f1 inner join friend f2 on f1.uid1 = f2.uid2 and f1.uid2 = f2.uid1 AND f1.uid1=2))) and id <> 2
+
+  if($_SERVER['REQUEST_METHOD'] == 'POST')
+  {
+    $dt = $_POST['date'];
+    echo $dt;
+    $ti = $_POST['time'];
+    echo $ti;
+    $ts = $dt.' '.$ti;
+    $lat = $_POST['latitude'];
+    echo $lat;
+    $lon = $_POST['longitude'];
+    echo $lon;
+    $sql = "select distinct n1.title, n1.content, n1.latitude, n1.longitude from
+    (select f.uid, f.vstatus, f.tagid, s.stateid, f.fid 
+   from users u, state s, filter f, schedule sc
+    where  u.state_id = s.stateid AND
+    u.id = '".($_SESSION['user_id'])."'
+    and s.stateid = f.stateid AND
+   f.uid = u.id AND
+    f.scheduleid = sc.sid 
+    order by f.uid AND
+    check_schedule('".($ts)."', sc.type, sc.stdate, sc.enddate, sc.vstart, sc.vend) = 1 AND
+    getdistance('".($lat)."','".($lon)."', f.latitude, f.longitude) <= f.radius) as f1,
+    (select DISTINCT n.nid, n.content, n.visible_to, nt.tagid, n.uid, n.title, u1.name, n.latitude, n.longitude
+   from note n, tagging nt, schedule sc, users u, users u1
+    where n.nid = nt.nid AND
+    n.uid = u1.id AND
+  
+     u.id = '".($_SESSION['user_id'])."' AND
+     n.scheduleid = sc.sid AND
+    check_schedule('".($ts)."', sc.type,  sc.vstart, sc.vend,sc.stdate, sc.enddate) = 1 AND
+   getdistance('".($lat)."','".($lon)."', n.latitude, n.longitude) <= n.radius_of_interest) as n1
+   
+   where ((f1.tagid IS NOT NULL AND n1.tagid IS NOT NULL AND f1.tagid = n1.tagid) OR (f1.tagid IS NULL)) AND check_if_visible(f1.vstatus, n1.visible_to,f1.uid, n1.uid) = 1";
